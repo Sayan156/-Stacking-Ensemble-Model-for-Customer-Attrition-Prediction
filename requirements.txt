@@ -1,9 +1,5 @@
-numpy
-pandas
-seaborn
-matplotlib
-scikit-learn
-shap
-joblib
-xgboost
-catboost
+numpy==1.26.4
+pandas==2.2.2
+scikit-learn==1.3.2
+xgboost==1.7.6
+joblib==1.3.2
