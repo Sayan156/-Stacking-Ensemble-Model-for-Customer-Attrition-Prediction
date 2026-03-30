@@ -511,11 +511,11 @@ with right:
     gender = st.selectbox("Gender", ["F", "M"], format_func=lambda x: "Female" if x == "F" else "Male")
     education_level = st.selectbox(
         "Education Level",
-        ["College","Doctorate","Graduate","High School","Post-Graduate","Uneducated","Unknown"],
+        ["Doctorate","Graduate","High School","Post-Graduate","Uneducated","Unknown"],
         index=2,
     )
     st.markdown('<div class="info-note">Baseline: College (all dummies = 0)</div>', unsafe_allow_html=True)
-    marital_status = st.selectbox("Marital Status", ["Divorced","Married","Single","Unknown"], index=1)
+    marital_status = st.selectbox("Marital Status", ["Married","Single","Unknown"], index=1)
     st.markdown('<div class="info-note">Baseline: Divorced (all dummies = 0)</div>', unsafe_allow_html=True)
     income_category = st.selectbox(
         "Income Category",
@@ -523,7 +523,7 @@ with right:
         index=2,
     )
     st.markdown('<div class="info-note">Baseline: $120K+ (all dummies = 0)</div>', unsafe_allow_html=True)
-    card_category = st.selectbox("Card Category", ["Blue","Gold","Platinum","Silver"], index=0)
+    card_category = st.selectbox("Card Category", ["Gold","Platinum","Silver"], index=0)
     st.markdown('<div class="info-note">Baseline: Blue (all dummies = 0)</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -543,7 +543,7 @@ with right:
         }
         X_input    = build_feature_vector(inp)
         prob_churn = float(model.predict_proba(X_input)[0, 1])
-        prediction = int(model.predict(X_input)[0])
+        prediction = int(prob_churn >= 0.2)
         st.session_state["result"] = {
             "X_input": X_input, "prediction": prediction,
             "prob_churn": prob_churn, "eng_score": eng_score,
