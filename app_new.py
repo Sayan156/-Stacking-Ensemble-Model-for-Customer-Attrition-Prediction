@@ -324,14 +324,17 @@ except FileNotFoundError:
 # ─────────────────────────────────────────────────────────────────────────────
 # SHAP EXPLAINER
 # ─────────────────────────────────────────────────────────────────────────────
-@st.cache_resource(show_spinner=False)
-def get_explainer(_model):
+# NOTE: KernelExplainer is intentionally NOT cached with @st.cache_resource.
+# It is a stateful object (nsamplesRun / nsamplesAdded etc.).  Caching it
+# causes a ValueError when Streamlit reruns the script mid-computation and
+# the shared object's internal counters are left in an inconsistent state.
+# Creating a fresh instance each time costs only one model forward-pass on
+# the single-row background DataFrame, which is negligible.
+def make_explainer(_model):
     def predict_fn(x):
         df = pd.DataFrame(x, columns=FEATURES_ORDER)
         return _model.predict_proba(df)[:, 1]
     return shap.KernelExplainer(predict_fn, BACKGROUND_DF.values)
-
-explainer = get_explainer(model)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -594,9 +597,19 @@ if st.session_state.get("result", {}).get("prediction") == 1:
     X_input = r["X_input"]
 
     with st.spinner("Computing SHAP values — may take 15–30 seconds…"):
-        raw_shap = explainer.shap_values(X_input.values, nsamples=200, silent=True)
-        base_val = float(explainer.expected_value)
-        sv_row   = np.array(raw_shap).flatten()
+        # Always create a fresh explainer here to avoid stale internal state
+        # from a previous interrupted Streamlit rerun (root cause of the
+        # "could not broadcast (200,1) into (0,1)" ValueError).
+        try:
+            _exp     = make_explainer(model)
+            raw_shap = _exp.shap_values(X_input.values, nsamples=200, silent=True)
+            base_val = float(_exp.expected_value)
+        except (ValueError, RuntimeError) as _shap_err:
+            st.warning(f"SHAP retry after error: {_shap_err}")
+            _exp     = make_explainer(model)
+            raw_shap = _exp.shap_values(X_input.values, nsamples=200, silent=True)
+            base_val = float(_exp.expected_value)
+        sv_row = np.array(raw_shap).flatten()
 
     abs_sv   = np.abs(sv_row)
     top3_idx = np.argsort(abs_sv)[::-1][:3]
